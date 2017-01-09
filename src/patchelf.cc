@@ -673,11 +673,23 @@ void ElfFile<ElfFileParamNames>::rewriteSectionsLibrary()
     debug("last page is 0x%llx\n", (unsigned long long) startPage);
 
 
+    /* Because we're adding a new section header, we're necessarily increasing
+       the size of the program header table.  This can cause the first section
+       to overlap the program header table in memory; we need to shift the first
+       few segments to someplace else in virtual memory. */
+    unsigned int i = 1;
+    Elf_Addr pht_size = sizeof(Elf_Ehdr) + (phdrs.size() + 1)*sizeof(Elf_Phdr);
+    while( shdrs[i].sh_addr <= pht_size && i < rdi(hdr->e_shnum) ) {
+        replaceSection(getSectionName(shdrs[i]), shdrs[i].sh_size);
+        i++;
+    }
+
     /* Compute the total space needed for the replaced sections and
        the program headers. */
     off_t neededSpace = (phdrs.size() + 1) * sizeof(Elf_Phdr);
     for (auto & i : replacedSections)
         neededSpace += roundUp(i.second.size(), sectionAlignment);
+
     debug("needed space is %d\n", neededSpace);
 
 
