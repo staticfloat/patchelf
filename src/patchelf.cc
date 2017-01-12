@@ -686,7 +686,7 @@ void ElfFile<ElfFileParamNames>::rewriteSectionsLibrary()
 
     /* Compute the total space needed for the replaced sections and
        the program headers. */
-    off_t neededSpace = (phdrs.size() + 1) * sizeof(Elf_Phdr);
+    off_t neededSpace = roundUp((phdrs.size() + 1) * sizeof(Elf_Phdr), sectionAlignment);
     for (auto & i : replacedSections)
         neededSpace += roundUp(i.second.size(), sectionAlignment);
 
@@ -744,10 +744,6 @@ void ElfFile<ElfFileParamNames>::rewriteSectionsLibrary()
     Elf_Off curOff = startOffset + phdrs.size() * sizeof(Elf_Phdr);
     writeReplacedSections(curOff, startPage, startOffset);
     assert(curOff == startOffset + neededSpace);
-
-
-    /* Move the program header to the start of the new area. */
-    wri(hdr->e_phoff, startOffset);
 
     rewriteHeaders(startPage);
 }
